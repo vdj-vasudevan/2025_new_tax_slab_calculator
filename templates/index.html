@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tax Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center mb-6">Tax Calculator</h1>
+
+    <form id="tax-form" class="space-y-4">
+      <input
+        type="number"
+        name="annual_pay"
+        step="any"
+        placeholder="Enter Annual Pay"
+        class="w-full p-2 border rounded"
+        required
+      />
+      <button
+        type="submit"
+        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+      >
+        Calculate
+      </button>
+    </form>
+
+    <div id="result" class="mt-6 text-center hidden">
+      <p class="text-lg font-semibold">In-hand: ₹<span id="inhand"></span></p>
+      <br>
+      <p class="text-lg">Tax: ₹<span id="tax"></span></p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("tax-form").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      
+      // Debug form values
+      console.log("Form submitted");
+      const annualPay = parseFloat(this.annual_pay.value);
+      console.log("Annual Pay:", annualPay);
+      
+      // Show loading state
+      const resultDiv = document.getElementById("result");
+      const submitButton = this.querySelector("button[type=submit]");
+      submitButton.textContent = "Calculating...";
+      submitButton.disabled = true;
+
+      try {
+        console.log("Sending request to /calculate-tax");
+        const requestBody = { annual_pay: annualPay };
+        console.log("Request payload:", requestBody);
+        
+        const res = await fetch("/calculate-tax", {
+          method: "POST", 
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log("Response status:", res.status);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Server error response:", errorText);
+          throw new Error(`Network response was not ok: ${res.status} ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        console.log("Response data:", data);
+
+        if (data && data.tax !== undefined && data.inhand !== undefined) {
+          document.getElementById("tax").textContent = data.tax.toFixed(2);
+          document.getElementById("inhand").textContent = data.inhand.toFixed(2);
+          resultDiv.classList.remove("hidden");
+        } else {
+          console.error("Invalid data structure:", data);
+          throw new Error('Invalid response data');
+        }
+
+      } catch (error) {
+        console.error('Error details:', error);
+        alert(`Failed to calculate tax: ${error.message}`);
+      } finally {
+        // Reset button state
+        submitButton.textContent = "Calculate";
+        submitButton.disabled = false;
+      }
+    });
+
+    // Add this to check if the script loaded properly
+    console.log("Tax calculator script initialized");
+  </script>
+</body>
+</html>
