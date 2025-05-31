@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Custom Tax Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f5f7;
+            display: flex;
+            justify-content: center;
+            padding-top: 60px;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 450px;
+        }
+
+        input {
+            padding: 10px;
+            margin: 5px;
+            width: calc(100% - 22px);
+        }
+
+        .bucket-row input {
+            width: 30%;
+            margin-right: 5px;
+        }
+
+        .bucket-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .add-btn {
+            background: #ccc;
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .submit-btn {
+            background: #1d4ed8;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2 style="text-align: center;">Custom Tax Calculator</h2>
+
+        <input type="number" id="annualPay" placeholder="Enter Annual Pay" />
+
+        <div id="bucketContainer">
+            <div class="bucket-row">
+                <input type="number" placeholder="From" class="from" value="0" />
+                <input type="number" placeholder="To" class="to" value="400000" />
+                <input type="number" placeholder="%" class="percent" value="0" />
+            </div>
+        </div>
+
+
+        <button type="button" onclick="addBucket()">+ Add Bucket</button>
+
+        <div style="margin-top: 15px;">
+            <label>Deduction</label>
+            <input type="number" id="deduction" placeholder="Deduction Amount" />
+        </div>
+
+        <button class="submit-btn" onclick="submitCustomTax()">Calculate Custom Tax</button>
+
+        <div id="result" style="margin-top: 20px; text-align: center; display: none;">
+            <p style="font-size: 18px; font-weight: 600;">In-hand: ₹<span id="inhand"></span></p>
+            <br>
+            <p style="font-size: 18px;">Tax: ₹<span id="tax"></span></p>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        function addBucket() {
+            const container = document.getElementById("bucketContainer");
+            const rows = container.getElementsByClassName("bucket-row");
+
+            let start = 0;
+            let rate = 0;
+            let defaultDiff = 400000; // fallback if first row is missing or invalid
+
+            if (rows.length > 0) {
+                // Get first bucket's slab difference
+                const firstRow = rows[0];
+                const from0 = parseInt(firstRow.querySelector(".from").value);
+                const to0 = parseInt(firstRow.querySelector(".to").value) - 1;
+                if (!isNaN(from0) && !isNaN(to0)) {
+                    defaultDiff = to0 - from0;
+                }
+
+
+                // Get last bucket's end and rate
+                const lastRow = rows[rows.length - 1];
+                const lastTo = parseInt(lastRow.querySelector(".to").value) + 1;  // +1 to ensure the next bucket starts from the end of the last one
+                const lastRate = parseInt(lastRow.querySelector(".percent").value);
+
+                if (!isNaN(lastTo)) start = lastTo;
+                if (!isNaN(lastRate)) rate = lastRate + 5; // default rate if last rate is NaN
+            }
+            const end = start + defaultDiff;
+
+            const row = document.createElement("div");
+            row.className = "bucket-row";
+            row.innerHTML = `
+    <input type="number" placeholder="From" class="from" value="${start}" />
+    <input type="number" placeholder="To" class="to" value="${end}" />
+    <input type="number" placeholder="%" class="percent" value="${rate}" />
+  `;
+
+            container.appendChild(row);
+        }
+    </script>
+    <script>
+        function submitCustomTax() {
+    const salary = parseFloat(document.getElementById("annualPay").value);
+    const deduction = parseFloat(document.getElementById("deduction").value) || 0;
+
+    const rows = document.getElementsByClassName("bucket-row");
+    const buckets = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const from = parseFloat(rows[i].querySelector(".from").value);
+        const to = parseFloat(rows[i].querySelector(".to").value);
+        const percent = parseFloat(rows[i].querySelector(".percent").value);
+
+        if (!isNaN(from) && !isNaN(to) && !isNaN(percent)) {
+            buckets.push({ from, to, percent });
+        }
+    }
+
+    const payload = {
+        annualPay: salary,
+        deduction: deduction,
+        buckets: buckets
+    };
+
+    fetch("/calculate-custom-tax", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("tax").innerText = data.tax.toFixed(2);
+            document.getElementById("inhand").innerText = data.inhand.toFixed(2);
+            document.getElementById("result").style.display = "block";
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("Something went wrong while calculating tax.");
+        });
+}
+    </script>
+
+
+
+</body>
+
+</html>

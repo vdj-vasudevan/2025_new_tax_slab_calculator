@@ -52,7 +52,7 @@ func CalculateTax(w http.ResponseWriter, r *http.Request) {
 	sdSalary := annualPay - 75000
 	var tax float64
 	if sdSalary > 1200000 {
-		tax = getTaxAmount(bucket, percent, sdSalary)
+		tax = GetTaxAmount(bucket, percent, sdSalary)
 
 		fmt.Printf("In Hand salary %f\n", (annualPay - tax))
 		fmt.Printf("Tax : %f", tax)
@@ -69,7 +69,7 @@ func CalculateTax(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func getTaxAmount(bucket [][]float64, percent []float64, salary float64) float64 {
+func GetTaxAmount(bucket [][]float64, percent []float64, salary float64) float64 {
 	tax := 0.0
 
 	for i := 0; i <= len(bucket)-2; i++ {
